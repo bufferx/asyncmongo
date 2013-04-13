@@ -134,9 +134,6 @@ class Connection(object):
         except socket.error, error:
             raise InterfaceError(error)
         
-        if self.__dbuser and self.__dbpass:
-            self.__authenticate = True
-
     def _on_timeout(self):
         self.__timeout = None
         self.close()
