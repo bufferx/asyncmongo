@@ -57,8 +57,6 @@ class Connection(object):
                  connect_timeout=20.0,
                  request_timeout=20.0,
                  **kwargs):
-        assert isinstance(host, (str, unicode))
-        assert isinstance(port, int)
         assert isinstance(autoreconnect, bool)
         assert isinstance(dbuser, (str, unicode, NoneType))
         assert isinstance(dbpass, (str, unicode, NoneType))
