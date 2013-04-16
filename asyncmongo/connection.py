@@ -140,7 +140,6 @@ class Connection(object):
 
     def _on_connect(self):
         if self.__timeout is not None:
-            #self.__timeout.callback = None
             self.__stream.io_loop.remove_timeout(self.__timeout)
             self.__timeout = None
 
@@ -221,6 +220,10 @@ class Connection(object):
         # return self.__request_id 
     
     def _parse_header(self, header):
+        if self.__timeout is not None:
+            self.__stream.io_loop.remove_timeout(self.__timeout)
+            self.__timeout = None
+
         # return self.__receive_data_on_socket(length - 16, sock)
         length = int(struct.unpack("<i", header[:4])[0])
         request_id = struct.unpack("<i", header[8:12])[0]
