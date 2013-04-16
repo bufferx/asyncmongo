@@ -39,8 +39,8 @@ class Connection(object):
       - `autoreconnect` (optional): auto reconnect on interface errors
       - `rs`: replica set name (required when replica sets are used)
       - `seed`: seed list to connect to a replica set (required when replica sets are used)
-      - `connect_timeout`: timeout for initial connection to mongodb, float data, in seconds 
-      - `request_timeout`: timeout for entire request to mongodb, float data, in seconds 
+      - `connect_timeout`: timeout for initial connection to mongodb, float data, in seconds
+      - `request_timeout`: timeout for entire request to mongodb, float data, in seconds
       - `**kwargs`: passed to `backends.AsyncBackend.register_stream`
 
     """
@@ -133,7 +133,7 @@ class Connection(object):
             self.__alive = True
         except socket.error, error:
             raise InterfaceError(error)
-        
+
     def _on_timeout(self):
         self.__timeout = None
         self.close()
