@@ -19,11 +19,15 @@ import socket
 import struct
 import logging
 from types import NoneType
+import time
 
 from errors import ProgrammingError, IntegrityError, InterfaceError
 import helpers
 import asyncjobs
 
+ASYNC_BACKEND_TORNADO = 'tornado'
+ASYNC_BACKEND_GLIB2   = 'glib2'
+ASYNC_BACKEND_GLIB3   = 'glib3'
 
 class Connection(object):
     """
@@ -35,6 +39,8 @@ class Connection(object):
       - `autoreconnect` (optional): auto reconnect on interface errors
       - `rs`: replica set name (required when replica sets are used)
       - `seed`: seed list to connect to a replica set (required when replica sets are used)
+      - `connect_timeout`: timeout for initial connection to mongodb, float data, in seconds
+      - `request_timeout`: timeout for entire request to mongodb, float data, in seconds
       - `**kwargs`: passed to `backends.AsyncBackend.register_stream`
 
     """
@@ -45,9 +51,11 @@ class Connection(object):
                  dbpass=None,
                  autoreconnect=True,
                  pool=None,
-                 backend="tornado",
+                 backend=ASYNC_BACKEND_TORNADO,
                  rs=None,
                  seed=None,
+                 connect_timeout=20.0,
+                 request_timeout=20.0,
                  **kwargs):
         assert isinstance(autoreconnect, bool)
         assert isinstance(dbuser, (str, unicode, NoneType))
@@ -78,7 +86,12 @@ class Connection(object):
         self.__kwargs = kwargs
         self.__backend = self.__load_backend(backend)
         self.__job_queue = []
+        self.__backend_class = backend
         self.usage_count = 0
+        self.__request_timeout = request_timeout
+        self.__min_timeout = min(connect_timeout, request_timeout)
+        self.__timeout = None
+        self.__start_time = time.time()
         self.__connect()
 
     def __load_backend(self, name):
@@ -101,13 +114,40 @@ class Connection(object):
         """create a socket, connect, register a stream with the async backend"""
         self.usage_count = 0
         try:
+            self.__start_time = time.time()
+
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
-            s.connect((self._host, self._port))
-            self.__stream = self.__backend.register_stream(s, **self.__kwargs)
+
+            if ASYNC_BACKEND_TORNADO == self.__backend_class:
+                self.__stream = self.__backend.register_stream(s, **self.__kwargs)
+                if self.__min_timeout:
+                    self.__timeout = self.__stream.io_loop.add_timeout(
+                            self.__start_time + self.__min_timeout,
+                            self._on_timeout)
+                self.__stream.connect((self._host, self._port), self._on_connect)
+            else:
+                s.connect((self._host, self._port))
+                self.__stream = self.__backend.register_stream(s, **self.__kwargs)
+
             self.__stream.set_close_callback(self._socket_close)
             self.__alive = True
         except socket.error, error:
             raise InterfaceError(error)
+
+    def _on_timeout(self):
+        self.__timeout = None
+        self.close()
+
+    def _on_connect(self):
+        if self.__timeout is not None:
+            #self.__timeout.callback = None
+            self.__stream.io_loop.remove_timeout(self.__timeout)
+            self.__timeout = None
+
+        if self.__request_timeout:
+            self.__timeout = self.__stream.io_loop.add_timeout(
+                    self.__start_time + self.__request_timeout,
+                    self._on_timeout)
     
     def _socket_close(self):
         """cleanup after the socket is closed by the other end"""
@@ -196,6 +236,9 @@ class Connection(object):
             raise
     
     def _parse_response(self, response):
+        if self.__callback is None:
+            return
+
         callback = self.__callback
         request_id = self.__request_id
         self.__request_id = None

@@ -28,6 +28,13 @@ class TornadoStream(object):
         """
         self.__stream = tornado.iostream.IOStream(socket, **kwargs)
 
+    @property
+    def io_loop(self):
+        return self.__stream.io_loop
+
+    def connect(self, address, callback=None):
+        self.__stream.connect(address, callback)
+
     def write(self, data):
         self.__stream.write(data)
     
