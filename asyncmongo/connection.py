@@ -41,6 +41,8 @@ class Connection(object):
       - `seed`: seed list to connect to a replica set (required when replica sets are used)
       - `connect_timeout`: timeout for initial connection to mongodb, float data, in seconds
       - `request_timeout`: timeout for entire request to mongodb, float data, in seconds
+      - `secondary_only`: (optional, only useful for replica set connections)
+         if true, connect to a secondary member only
       - `**kwargs`: passed to `backends.AsyncBackend.register_stream`
 
     """
@@ -56,12 +58,14 @@ class Connection(object):
                  seed=None,
                  connect_timeout=20.0,
                  request_timeout=20.0,
+                 secondary_only=False,
                  **kwargs):
         assert isinstance(autoreconnect, bool)
         assert isinstance(dbuser, (str, unicode, NoneType))
         assert isinstance(dbpass, (str, unicode, NoneType))
         assert isinstance(rs, (str, NoneType))
         assert pool
+        assert isinstance(secondary_only, bool)
         
         if rs:
             assert host is None
@@ -76,6 +80,7 @@ class Connection(object):
         self._port = port
         self.__rs = rs
         self.__seed = seed
+        self.__secondary_only = secondary_only
         self.__dbuser = dbuser
         self.__dbpass = dbpass
         self.__stream = None
@@ -104,7 +109,7 @@ class Connection(object):
             self._put_job(asyncjobs.AuthorizeJob(self, self.__dbuser, self.__dbpass, self.__pool))
 
         if self.__rs:
-            self._put_job(asyncjobs.ConnectRSJob(self, self.__seed, self.__rs))
+            self._put_job(asyncjobs.ConnectRSJob(self, self.__seed, self.__rs, self.__secondary_only))
             # Mark the connection as alive, even though it's not alive yet to prevent double-connecting
             self.__alive = True
         else:
