@@ -391,7 +391,8 @@ class Cursor(object):
                               self.__fields), 
                 callback=functools.partial(self._handle_response, orig_callback=callback))
         except Exception, e:
-            logging.debug('Error sending query %s' % e)
+            logging.error('Error sending query %s' % e, exc_info=False if
+                    __debug__ else True)
             connection.close()
             raise
     
@@ -403,12 +404,15 @@ class Cursor(object):
                     message.kill_cursors([result['cursor_id']]),
                     callback=None)
             except Exception, e:
-                logging.debug('Error killing cursor %s: %s' % (result['cursor_id'], e))
+                logging.error('Error killing cursor %s: %s' %
+                        (result['cursor_id'], e), exc_info=False if __debug__
+                        else True)
                 connection.close()
                 raise
         
         if error:
-            logging.debug('%s %s' % (self.full_collection_name , error))
+            logging.error('%s %s' % (self.full_collection_name , error),
+                    exc_info=False if __debug__ else True)
             orig_callback(None, error=error)
         else:
             if self.__limit == -1 and len(result['data']) == 1:

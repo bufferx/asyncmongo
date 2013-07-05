@@ -252,7 +252,8 @@ class Connection(object):
         try:
             response = helpers._unpack_response(response, request_id) # TODO: pass tz_awar
         except Exception, e:
-            logging.debug('error %s' % e)
+            logging.error('error %s' % e, exc_info=False if not __debug__
+                    else True)
             callback(None, e)
             return
         
