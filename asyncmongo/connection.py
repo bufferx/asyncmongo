@@ -71,6 +71,8 @@ class Connection(object):
             assert isinstance(host, (str, unicode))
             assert isinstance(port, int)
             assert seed is None
+
+        assert connect_timeout > 0
         
         self._host = host
         self._port = port
@@ -89,7 +91,7 @@ class Connection(object):
         self.__backend_class = backend
         self.usage_count = 0
         self.__life_time = life_time
-        self.__min_timeout = min(connect_timeout, life_time)
+        self.__connect_timeout = connect_timeout
         self.__timeout = None
         self.__start_time = time.time()
         self.__connect()
@@ -120,10 +122,9 @@ class Connection(object):
 
             if ASYNC_BACKEND_TORNADO == self.__backend_class:
                 self.__stream = self.__backend.register_stream(s, **self.__kwargs)
-                if self.__min_timeout:
-                    self.__timeout = self.__stream.io_loop.add_timeout(
-                            self.__start_time + self.__min_timeout,
-                            self._on_timeout)
+                self.__timeout = self.__stream.io_loop.add_timeout(
+                        self.__start_time + self.__connect_timeout,
+                        self._on_timeout)
                 self.__stream.connect((self._host, self._port), self._on_connect)
             else:
                 s.connect((self._host, self._port))
