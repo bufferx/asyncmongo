@@ -41,6 +41,8 @@ class Connection(object):
       - `seed`: seed list to connect to a replica set (required when replica sets are used)
       - `connect_timeout`: timeout for initial connection to mongodb, float data, in seconds
       - `request_timeout`: timeout for entire request to mongodb, float data, in seconds
+      - `life_time`: life time for connection to mongodb, float data, in
+        seconds, 0 or None for unlimited
       - `secondary_only`: (optional, only useful for replica set connections)
          if true, connect to a secondary member only
       - `**kwargs`: passed to `backends.AsyncBackend.register_stream`
@@ -58,6 +60,7 @@ class Connection(object):
                  seed=None,
                  connect_timeout=20.0,
                  request_timeout=20.0,
+                 life_time=60.0,
                  secondary_only=False,
                  **kwargs):
         assert isinstance(autoreconnect, bool)
@@ -76,6 +79,9 @@ class Connection(object):
             assert isinstance(port, int)
             assert seed is None
         
+        assert connect_timeout > 0
+        assert request_timeout > 0
+
         self._host = host
         self._port = port
         self.__rs = rs
@@ -95,6 +101,7 @@ class Connection(object):
         self.usage_count = 0
         self.__request_timeout = request_timeout
         self.__min_timeout = min(connect_timeout, request_timeout)
+        self.__life_time = life_time
         self.__timeout = None
         self.__start_time = time.time()
         self.__connect()
@@ -139,18 +146,26 @@ class Connection(object):
         except socket.error, error:
             raise InterfaceError(error)
 
+    def _release_timeout(self):
+        if self.__timeout is not None:
+            self.__stream.io_loop.remove_timeout(self.__timeout)
+            self.__timeout = None
+
     def _on_timeout(self):
         self.__timeout = None
         self.close()
 
     def _on_connect(self):
-        if self.__timeout is not None:
-            self.__stream.io_loop.remove_timeout(self.__timeout)
-            self.__timeout = None
+        self._release_timeout()
 
         if self.__request_timeout:
             self.__timeout = self.__stream.io_loop.add_timeout(
                     self.__start_time + self.__request_timeout,
+                    self._on_timeout)
+
+        if self.__life_time:
+            self.__stream.io_loop.add_timeout(
+                    self.__start_time + self.__life_time,
                     self._on_timeout)
     
     def _socket_close(self):
@@ -225,9 +240,7 @@ class Connection(object):
         # return self.__request_id 
     
     def _parse_header(self, header):
-        if self.__timeout is not None:
-            self.__stream.io_loop.remove_timeout(self.__timeout)
-            self.__timeout = None
+        self._release_timeout()
 
         # return self.__receive_data_on_socket(length - 16, sock)
         length = int(struct.unpack("<i", header[:4])[0])
