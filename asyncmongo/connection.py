@@ -80,7 +80,7 @@ class Connection(object):
             assert seed is None
         
         assert connect_timeout > 0
-        assert isinstance(request_timeout, (float, int, NoneType)
+        assert isinstance(request_timeout, (float, int, NoneType))
 
         self._host = host
         self._port = port
