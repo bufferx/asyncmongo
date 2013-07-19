@@ -80,7 +80,7 @@ class Connection(object):
             assert seed is None
         
         assert connect_timeout > 0
-        assert request_timeout > 0
+        assert isinstance(request_timeout, (float, int, NoneType)
 
         self._host = host
         self._port = port
@@ -103,6 +103,7 @@ class Connection(object):
         self.__min_timeout = min(connect_timeout, request_timeout)
         self.__life_time = life_time
         self.__timeout = None
+        self.__start_time = time.time()
         self.__connect()
 
     def __load_backend(self, name):
@@ -111,8 +112,6 @@ class Connection(object):
         return mod.AsyncBackend()
     
     def __connect(self):
-        self.__start_time = time.time()
-
         if self.__dbuser and self.__dbpass:
             self._put_job(asyncjobs.AuthorizeJob(self, self.__dbuser, self.__dbpass, self.__pool))
 
@@ -206,6 +205,11 @@ class Connection(object):
         self._put_job(asyncjobs.AsyncMessage(self, message, callback), 0)
         self._next_job()
         
+        if self.__request_timeout:
+            self.__timeout = self.__stream.io_loop.add_timeout(
+                    time.time() + self.__request_timeout,
+                    self._on_timeout)
+
     def _put_job(self, job, pos=None):
         if pos is None:
             pos = len(self.__job_queue)
