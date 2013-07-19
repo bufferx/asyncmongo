@@ -103,7 +103,6 @@ class Connection(object):
         self.__min_timeout = min(connect_timeout, request_timeout)
         self.__life_time = life_time
         self.__timeout = None
-        self.__start_time = time.time()
         self.__connect()
 
     def __load_backend(self, name):
@@ -112,6 +111,8 @@ class Connection(object):
         return mod.AsyncBackend()
     
     def __connect(self):
+        self.__start_time = time.time()
+
         if self.__dbuser and self.__dbpass:
             self._put_job(asyncjobs.AuthorizeJob(self, self.__dbuser, self.__dbpass, self.__pool))
 
