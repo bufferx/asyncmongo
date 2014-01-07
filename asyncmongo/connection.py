@@ -135,13 +135,8 @@ class Connection(object):
         except socket.error, error:
             raise InterfaceError(error)
 
-    def _on_timeout(self):
-        self.__timeout = None
-        self.close()
-
-    def _on_connect(self):
+    def _update_timeout(self):
         if self.__timeout is not None:
-            #self.__timeout.callback = None
             self.__stream.io_loop.remove_timeout(self.__timeout)
             self.__timeout = None
 
@@ -149,6 +144,16 @@ class Connection(object):
             self.__timeout = self.__stream.io_loop.add_timeout(
                     self.__start_time + self.__life_time,
                     self._on_timeout)
+
+    def _on_timeout(self):
+        self.__timeout = None
+        self.close()
+
+    def _on_connect(self):
+        self._update_timeout()
+
+    def _on_request(self):
+        self._update_timeout()
     
     def _socket_close(self):
         """cleanup after the socket is closed by the other end"""
@@ -182,6 +187,9 @@ class Connection(object):
                 self.__connect()
             else:
                 raise InterfaceError('connection invalid. autoreconnect=False')
+        else:
+            self.__start_time = time.time()
+            self._on_request()
         
         # Put the current message on the bottom of the queue
         self._put_job(asyncjobs.AsyncMessage(self, message, callback), 0)
