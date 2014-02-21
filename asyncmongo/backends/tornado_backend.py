@@ -27,7 +27,6 @@ class TornadoStream(object):
             - `read_chunk_size` (optional):
         """
         self.__stream = tornado.iostream.IOStream(socket,
-                op=self,
                 **kwargs)
 
     @property
