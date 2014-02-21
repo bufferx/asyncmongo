@@ -96,6 +96,14 @@ class Connection(object):
         self.__start_time = time.time()
         self.__connect()
 
+    @property
+    def stream(self):
+        return self.__stream
+
+    @property
+    def is_alive(self):
+        return self.__alive
+
     def __load_backend(self, name):
         __import__('asyncmongo.backends.%s_backend' % name)
         mod = sys.modules['asyncmongo.backends.%s_backend' % name]

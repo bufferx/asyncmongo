@@ -101,6 +101,16 @@ class ConnectionPool(object):
         while idle:
             self.cache(idle.pop())
     
+    @property
+    def fds(self):
+        l = []
+
+        for con in self._idle_cache:
+            if con.is_alive:
+                l.append(con.stream.socket.fileno())
+
+        return l
+
     def new_connection(self):
         kwargs = self._kwargs
         kwargs['pool'] = self
@@ -161,5 +171,3 @@ class ConnectionPool(object):
             self._condition.notifyAll()
         finally:
             self._condition.release()
-    
-

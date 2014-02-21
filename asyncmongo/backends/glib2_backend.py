@@ -23,6 +23,10 @@ class Glib2Stream(object):
         self.__read_id = None
         self.__read_queue = []
 
+    @property
+    def socket(self):
+        return self.__socket
+
     def write(self, data):
         self.__socket.send(data)
     

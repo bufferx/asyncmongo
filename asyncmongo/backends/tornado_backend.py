@@ -26,7 +26,13 @@ class TornadoStream(object):
             - `max_buffer_size` (optional):
             - `read_chunk_size` (optional):
         """
-        self.__stream = tornado.iostream.IOStream(socket, **kwargs)
+        self.__stream = tornado.iostream.IOStream(socket,
+                op=self,
+                **kwargs)
+
+    @property
+    def socket(self):
+        return self.__stream.socket
 
     @property
     def io_loop(self):
