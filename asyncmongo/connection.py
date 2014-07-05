@@ -253,4 +253,4 @@ class Connection(object):
         if response and response['data'] and response['data'][0].get('err') and response['data'][0].get('code'):
             callback(response, IntegrityError(response['data'][0]['err'], code=response['data'][0]['code']))
             return
-        callback(response)
+        callback(response, None)
