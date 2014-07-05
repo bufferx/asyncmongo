@@ -399,24 +399,25 @@ class Cursor(object):
             cursor_id = response['cursor_id']
             retrieved = response['number_returned']
             while cursor_id != 0:
+                _limit = 0
                 if self.__limit:
-                    limit = self.__limit - retrieved
+                    _limit = self.__limit - retrieved
 
-                if limit == 0:
-                    try:
-                        connection.send_message(
-                            message.kill_cursors((cursor_id,)),
-                            callback=None)
-                    except Exception, e:
-                        logging.debug('Error killing cursor %s: %s' %
-                                (cursor_id, e), exc_info=True)
-                        connection.close()
+                    if _limit == 0:
+                        try:
+                            connection.send_message(
+                                message.kill_cursors((cursor_id,)),
+                                callback=None)
+                        except Exception, e:
+                            logging.debug('Error killing cursor %s: %s' %
+                                    (cursor_id, e), exc_info=True)
+                            connection.close()
 
-                    break
+                        break
 
                 tp, _ = yield gen.Task(connection.send_message,
                         message.get_more(self.full_collection_name,
-                                         limit,
+                                         _limit,
                                          cursor_id))
                 result, error = tp
                 if error is not None:
