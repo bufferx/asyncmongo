@@ -7,7 +7,7 @@ import asyncmongo
 version = asyncmongo.version
 
 setup(
-    name="asyncmongo",
+    name="asyncmongo_bufferx",
     version=version,
     keywords=["mongo", "mongodb", "pymongo", "asyncmongo", "tornado"],
     long_description=open(os.path.join(os.path.dirname(__file__),"README.md"), "r").read(),

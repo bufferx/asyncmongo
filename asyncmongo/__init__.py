@@ -24,8 +24,8 @@ except ImportError:
     raise ImportError("bson library not installed. Install pymongo >= 1.9 https://github.com/mongodb/mongo-python-driver")
 
 # also update in setup.py
-version = "1.4-alpha-zy"
-version_info = (1, 4, 'alpha', 'zy')
+version = "1.4-alpha"
+version_info = (1, 4, 'alpha')
 
 ASCENDING = 1
 """Ascending sort order."""
